@@ -1,20 +1,43 @@
 const canvasSketch = require('canvas-sketch');
+const Tweakpane = require('tweakpane');
 
 const settings = {
-  dimensions: [ 2048, 2048 ]
+  dimensions: [ 2048, 2048 ],
+  animate: true
 };
+
+const params = {
+  width: 50,
+  height: 50,
+}
 
 const typeCanvas = document.createElement('canvas');
 const typeContext = typeCanvas.getContext('2d');
 const url = "https://picsum.photos/id/20/3000/3000";
 let imgW;
 let imgH;
+let img;
+
+const loadMeSomeImage = (url) => {
+  
+  return new Promise((resolve, reject) => {
+    
+    img = new Image();
+    img.crossOrigin = "Anonymous"; // Handle CORS if needed
+    img.onload = () => resolve(img);
+    img.onerror = (error) => reject(new Error(`Failed to load image: ${error.message}`));
+    img.src = url;
+  });
+};
 
 const sketch = (image) => {
-
-
-  let cellW = 5;
-  let cellH = 5;
+  imgW = image.width;
+  imgH = image.height;
+  settings.dimensions = [imgW, imgH];
+  let cellW = params.width;
+  let cellH = params.height;
+  
+    //typeContext.clearRect(0, 0, typeCanvas.width,  typeCanvas.height);
   
   //imgW = image.Width;
   //console.log(imgW);
@@ -26,8 +49,12 @@ const sketch = (image) => {
   //let newImgH = Math.floor(imgH / cellH);
 
   return ({ context, width, height }) => {
+    context.clearRect(0, 0, imgW, imgH);
+    //typeContext.clearRect(0, 0, typeCanvas.width,  typeCanvas.height);
     typeCanvas.width = imgW;
     typeCanvas.height = imgH;
+    context.clearRect(0, 0, imgW, imgH);
+    typeContext.clearRect(0, 0, typeCanvas.width,  typeCanvas.height);
     //console.log(cellsWidth);
     typeContext.drawImage(image, 0, 0);
     //document.body.appendChild(typeCanvas);
@@ -44,33 +71,40 @@ const sketch = (image) => {
         //console.log(colors.red);
         //console.log(colors.blue);
         context.fillStyle = `rgba(${colors.red}, ${colors.green}, ${colors.blue}, ${colors.alpha})`;
-        context.fillRect(i * cellH, j * cellW, cellH - 10, cellW - 10); // Draw a rectangle with the average color
+        context.fillRect(j * cellW, i * cellH, cellW - 10, cellH - 10); // Draw a rectangle with the average color
       }
     }
+    
   };
 };
 
 
 
-const loadMeSomeImage = (url) => {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "Anonymous"; // Handle CORS if needed
-    img.onload = () => resolve(img);
-    img.onerror = (error) => reject(new Error(`Failed to load image: ${error.message}`));
-    img.src = url;
+
+
+const createPane = () => {
+  const pane = new Tweakpane.Pane();
+  
+  let folder = pane.addFolder({title: 'Photo'});
+  
+  folder.addInput(params, 'height').on('change', () => {
+    if (img) {
+     
+      init();
+    }
   });
-};
+  folder.addInput(params, 'width');
+  
+}
 
 
 async function init() {
-
+  
   try {
+    createPane();
     const image = await loadMeSomeImage(url);
-    imgW = image.width;
-    //console.log(imgW);
-    imgH = image.height;
-    settings.dimensions = [imgW, imgH];
+    
+    
     canvasSketch(sketch(image), settings);
   } catch(error) {
     console.error('Error initializing canvas sketch:', error);
